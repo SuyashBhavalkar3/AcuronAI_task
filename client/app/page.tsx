@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { uploadInvoices, exportToExcel, exportToPdf, downloadBlob, ProcessInvoicesResponse } from "@/services/invoiceApi";
+import { uploadInvoices, exportToPdf, downloadBlob, ProcessInvoicesResponse } from "@/services/invoiceApi";
 import UploadZone from "@/components/UploadZone";
 import ResultsTable from "@/components/ResultsTable";
 import { Download, FileSpreadsheet, Zap, Shield, BarChart3, FileText } from "lucide-react";
@@ -10,7 +10,6 @@ import { toast } from "sonner";
 export default function Home() {
   const [results, setResults] = useState<ProcessInvoicesResponse | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -30,21 +29,6 @@ export default function Home() {
       toast.error(`Processing failed: ${msg}`);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    if (uploadedFiles.length === 0) return;
-    setIsExportingExcel(true);
-    try {
-      const blob = await exportToExcel(uploadedFiles);
-      downloadBlob(blob, `invoice_accounting_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success("Excel file downloaded successfully.");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Export failed: ${msg}`);
-    } finally {
-      setIsExportingExcel(false);
     }
   };
 
@@ -118,7 +102,7 @@ export default function Home() {
               {[
                 { icon: Shield, label: "GSTIN Validation" },
                 { icon: BarChart3, label: "GST Calculation Check" },
-                { icon: FileSpreadsheet, label: "Excel Export" },
+                { icon: FileText, label: "PDF Reports" },
                 { icon: Zap, label: "Multi-Invoice Batch" },
               ].map(({ icon: Icon, label }) => (
                 <div
@@ -202,30 +186,6 @@ export default function Home() {
                 )}
               </button>
 
-              <button
-                onClick={handleExportExcel}
-                disabled={isExportingExcel || uploadedFiles.length === 0}
-                className={`
-                  flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-                  transition-all duration-200
-                  ${isExportingExcel
-                    ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
-                  }
-                `}
-              >
-                {isExportingExcel ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    Download Excel
-                  </>
-                )}
-              </button>
             </div>
             </div>
 

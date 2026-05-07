@@ -80,25 +80,6 @@ export async function uploadInvoices(files: File[]): Promise<ProcessInvoicesResp
   return response.json();
 }
 
-export async function exportToExcel(files: File[]): Promise<Blob> {
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append("files", file);
-  }
-
-  const response = await fetch(`${API_BASE}/api/invoices/export-excel`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Export failed: ${response.status} - ${error}`);
-  }
-
-  return response.blob();
-}
-
 export async function exportToPdf(files: File[]): Promise<Blob> {
   const formData = new FormData();
   for (const file of files) {

@@ -11,7 +11,6 @@ from app.schemas.invoice import InvoiceProcessingResult, ProcessInvoicesResponse
 from app.services.azure_di_service import extract_invoice_from_bytes
 from app.services.validation_service import validate_invoice, reset_duplicate_tracker
 from app.services.rules_engine import apply_rules
-from app.services.excel_service import generate_excel
 from app.services.pdf_service import generate_pdf
 
 logger = logging.getLogger(__name__)
@@ -108,21 +107,6 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
         warning_count=warning_count,
     )
 
-
-@router.post("/export-excel")
-async def export_excel(files: List[UploadFile] = File(...)):
-    """
-    Process uploaded invoices and return a styled Excel file for download.
-    """
-    # Reuse the upload logic to get results
-    upload_response = await upload_invoices(files)
-    excel_bytes = generate_excel(upload_response.results)
-
-    return Response(
-        content=excel_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=invoice_accounting.xlsx"},
-    )
 
 
 @router.post("/export-pdf")
