@@ -64,8 +64,8 @@ export default function Home() {
               <FileSpreadsheet className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white tracking-tight">Acuron Invoice Intelligence</h1>
-              <p className="text-xs text-slate-400">Powered by Azure Document Intelligence</p>
+              <h1 className="text-base font-bold text-white tracking-tight">Acuron Ai Solutions Pvt Ltd</h1>
+              <p className="text-[10px] text-slate-400 font-medium">info@acuronai.com | +91 9552033662 | acuronai.com</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto text-base">
-              Upload your vendor invoices and our AI pipeline extracts structured accounting data,
+              Upload your vendor invoices and our intelligent pipeline extracts structured accounting data,
               applies GST rules, and maps to your GL codes automatically.
             </p>
 
@@ -131,6 +131,11 @@ export default function Home() {
             )}
           </div>
           <UploadZone onFilesSelected={handleFilesSelected} isProcessing={isProcessing} />
+          <div className="mt-4 text-center">
+            <p className="text-[10px] text-slate-500 font-medium tracking-wide">
+              FOR SUPPORT: info@acuronai.com | +91 9552033662 | acuronai.com
+            </p>
+          </div>
         </section>
 
         {/* Processing Loader */}
@@ -145,7 +150,7 @@ export default function Home() {
               <div className="space-y-2">
                 <p className="text-lg font-semibold text-slate-100">Processing your invoices</p>
                 <p className="text-sm text-slate-400">
-                  Azure AI is extracting data · Validating GSTIN · Applying accounting rules...
+                  Our intelligence engine is extracting data · Validating GSTIN · Applying accounting rules...
                 </p>
               </div>
               <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -198,9 +203,18 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative border-t border-slate-800/60 mt-16 py-6">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-slate-600">
-          <span>Acuron Invoice Intelligence · MVP v1.0</span>
-          <span>FastAPI + Azure Document Intelligence + Next.js</span>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-medium">
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-widest">Powered by:</span>
+            <span className="text-slate-300">Acuron Ai Solutions Pvt Ltd | acuronai.com</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span>info@acuronai.com</span>
+            <span className="text-slate-700">|</span>
+            <span>+91 9552033662</span>
+            <span className="text-slate-700">|</span>
+            <span>acuronai.com</span>
+          </div>
         </div>
       </footer>
     </div>
