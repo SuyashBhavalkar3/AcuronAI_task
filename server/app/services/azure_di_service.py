@@ -132,11 +132,54 @@ def extract_invoice_from_bytes(file_bytes: bytes, filename: str) -> ExtractedInv
             if all_pans:
                 vendor_gstin = all_pans[0]
 
-    # --- Top-level summary fields (most reliable from Azure DI) ---
-    # These are extracted FIRST; line items are only a fallback.
+    # --- Advanced Amount Extraction with Math Verification ---
     total = _safe_float(fields.get("InvoiceTotal"))
     taxable_amount = _safe_float(fields.get("SubTotal"))
     gst_amount = _safe_float(fields.get("TotalTax"))
+
+    # AI is sometimes "chopping off" leading digits in Indian numbering (Lakhs/Crores).
+    # We refactor this to be format-agnostic.
+    def find_all_amounts(text):
+        # Matches numbers with any comma placement (e.g., 10,93,877.00 or 1,093,877.00)
+        # Sequence of digits and commas, followed by a period and 2-3 decimal digits.
+        matches = re.findall(r'(?:\d[\d,]*\.\d{2,3})', text)
+        
+        amounts = []
+        for m in matches:
+            try:
+                # Clean commas and convert to float
+                val = float(m.replace(',', ''))
+                # Ignore very small amounts or obvious noise
+                if val > 0.01:
+                    amounts.append(val)
+            except ValueError:
+                continue
+        return sorted(list(set(amounts)), reverse=True)
+
+    all_amounts = find_all_amounts(full_content)
+    
+    if len(all_amounts) >= 3:
+        # Optimization: Look for a relationship where A + B = C (within 1.0 tolerance)
+        found_triplet = False
+        for i in range(len(all_amounts)): # C (Total)
+            for j in range(i + 1, len(all_amounts)): # A or B
+                for k in range(j + 1, len(all_amounts)): # B or A
+                    # Check if all_amounts[j] + all_amounts[k] == all_amounts[i]
+                    if abs((all_amounts[j] + all_amounts[k]) - all_amounts[i]) < 2.0:
+                        # Triplet found: [Total, Taxable, GST]
+                        total = all_amounts[i]
+                        taxable_amount = all_amounts[j]
+                        gst_amount = all_amounts[k]
+                        found_triplet = True
+                        break
+                if found_triplet: break
+            if found_triplet: break
+
+    # Fallback: Specific label search for "Amount Due" if total still looks wrong
+    if not total:
+        due_match = re.search(r'TOTAL\s+AMOUNT\s+DUE.*?(\d{1,3}(?:,\d{3})*(?:\.\d{2}))', full_content, re.IGNORECASE | re.DOTALL)
+        if due_match:
+            total = float(due_match.group(1).replace(',', ''))
 
     # --- Line-item extraction (fallback + HSN/SAC pickup) ---
     hsn_sac = None

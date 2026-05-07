@@ -169,7 +169,7 @@ export default function Home() {
                   transition-all duration-200
                   ${isExportingPdf
                     ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:-translate-y-0.5"
+                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
                   }
                 `}
               >
