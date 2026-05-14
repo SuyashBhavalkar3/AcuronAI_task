@@ -48,153 +48,104 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-white">
-      {/* Ambient background gradients */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/8 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-0 w-64 h-64 bg-violet-600/6 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       {/* Header */}
-      <header className="relative border-b border-slate-800/60 bg-slate-900/40 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <FileSpreadsheet className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
+              <FileSpreadsheet className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white tracking-tight">Acuron Ai Solutions Pvt Ltd</h1>
-              <p className="text-[10px] text-slate-400 font-medium">info@acuronai.com | +91 9552033662 | acuronai.com</p>
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight">Acuron Ai Solutions Pvt Ltd</h1>
+              <p className="text-[10px] text-slate-500 font-medium tracking-wide">info@acuronai.com | +91 9552033662 | acuronai.com</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              API Live
-            </span>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 rounded border border-slate-200 bg-slate-50">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">System Active</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="relative max-w-7xl mx-auto px-6 py-10 space-y-10">
+      <main className="max-w-6xl mx-auto px-6 py-12 space-y-12">
         {/* Hero Section */}
         {!results && !isProcessing && (
-          <section className="text-center space-y-4 py-6">
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-sm text-blue-400">
-              <Zap className="w-3.5 h-3.5" />
-              AI-Powered Invoice Processing
-            </div>
-            <h2 className="text-4xl font-bold text-white leading-tight">
-              Extract. Validate. Export.
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-                In seconds.
-              </span>
+          <section className="space-y-4 max-w-2xl">
+            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Professional Invoice Intelligence.
             </h2>
-            <p className="text-slate-400 max-w-xl mx-auto text-base">
-              Upload your vendor invoices and our intelligent pipeline extracts structured accounting data,
-              applies GST rules, and maps to your GL codes automatically.
+            <p className="text-lg text-slate-600 leading-relaxed font-medium">
+              A clean pipeline for automated data extraction, GST validation, and accounting mapping.
             </p>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              {[
-                { icon: Shield, label: "GSTIN Validation" },
-                { icon: BarChart3, label: "GST Calculation Check" },
-                { icon: FileText, label: "PDF Reports" },
-                { icon: Zap, label: "Multi-Invoice Batch" },
-              ].map(({ icon: Icon, label }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-slate-300"
-                >
-                  <Icon className="w-4 h-4 text-blue-400" />
-                  {label}
-                </div>
+            <div className="flex flex-wrap gap-3 pt-2">
+              {["GST Validation", "Math Verification", "PDF Reports"].map((tag) => (
+                <span key={tag} className="px-3 py-1 rounded bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider">
+                  {tag}
+                </span>
               ))}
             </div>
           </section>
         )}
 
         {/* Upload Section */}
-        <section className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm shadow-xl">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-base font-semibold text-slate-100">Upload Invoices</h3>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Processing Console</h3>
             {results && (
               <button
                 onClick={() => { setResults(null); setUploadedFiles([]); }}
-                className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                className="text-xs font-bold text-blue-600 hover:underline"
               >
-                ← New batch
+                New batch
               </button>
             )}
           </div>
-          <UploadZone onFilesSelected={handleFilesSelected} isProcessing={isProcessing} />
-          <div className="mt-4 text-center">
-            <p className="text-[10px] text-slate-500 font-medium tracking-wide">
-              FOR SUPPORT: info@acuronai.com | +91 9552033662 | acuronai.com
-            </p>
+          
+          <div className="bg-white border-2 border-slate-200 rounded-lg overflow-hidden">
+            <UploadZone onFilesSelected={handleFilesSelected} isProcessing={isProcessing} />
+            <div className="py-3 bg-slate-100 border-t border-slate-200 text-center">
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                Support: info@acuronai.com | +91 9552033662 | acuronai.com
+              </p>
+            </div>
           </div>
         </section>
 
         {/* Processing Loader */}
         {isProcessing && (
-          <section className="bg-slate-900/50 border border-blue-500/20 rounded-2xl p-8 text-center backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-5">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full" />
-                <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin" />
-                <div className="absolute inset-2 border-4 border-transparent border-t-indigo-400 rounded-full animate-spin animation-delay-150" style={{ animationDirection: "reverse", animationDuration: "0.8s" }} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-lg font-semibold text-slate-100">Processing your invoices</p>
-                <p className="text-sm text-slate-400">
-                  Our intelligence engine is extracting data · Validating GSTIN · Applying accounting rules...
-                </p>
-              </div>
-              <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ width: "60%" }} />
-              </div>
+          <section className="py-20 flex flex-col items-center justify-center space-y-4">
+            <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">Analyzing Invoices</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Verifying tax and accounting logic...</p>
             </div>
           </section>
         )}
 
         {/* Results Section */}
         {results && !isProcessing && (
-          <section ref={resultsRef} className="space-y-4">
+          <section ref={resultsRef} className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-100">Processing Results</h3>
-            <div className="flex items-center gap-3">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Extracted Results</h3>
               <button
                 onClick={handleExportPdf}
                 disabled={isExportingPdf || uploadedFiles.length === 0}
                 className={`
-                  flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-                  transition-all duration-200
+                  px-8 py-3 rounded font-bold text-xs uppercase tracking-widest transition-all
                   ${isExportingPdf
-                    ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
                   }
                 `}
               >
-                {isExportingPdf ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4" />
-                    Download PDF
-                  </>
-                )}
+                {isExportingPdf ? "Exporting..." : "Download PDF"}
               </button>
-
-            </div>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm shadow-xl">
+            <div className="bg-white border-2 border-slate-200 rounded-lg shadow-sm">
               <ResultsTable data={results} />
             </div>
           </section>
@@ -202,18 +153,16 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-800/60 mt-16 py-6">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-medium">
-          <div className="flex items-center gap-2">
-            <span className="uppercase tracking-widest">Powered by:</span>
-            <span className="text-slate-300">Acuron Ai Solutions Pvt Ltd | acuronai.com</span>
+      <footer className="border-t border-slate-200 mt-20 py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-2 text-center md:text-left">
+            <p className="text-sm font-bold text-slate-900">Acuron Ai Solutions Pvt Ltd</p>
+            <p className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase">Precision Intelligence Engine</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span>info@acuronai.com</span>
-            <span className="text-slate-700">|</span>
+          <div className="flex flex-wrap justify-center gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <a href="mailto:info@acuronai.com" className="hover:text-blue-600">info@acuronai.com</a>
             <span>+91 9552033662</span>
-            <span className="text-slate-700">|</span>
-            <span>acuronai.com</span>
+            <a href="https://acuronai.com" target="_blank" className="hover:text-blue-600">acuronai.com</a>
           </div>
         </div>
       </footer>
