@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from pathlib import Path
@@ -26,18 +27,21 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
     """
     Accept one or more invoice PDF/image uploads, process them through
     Azure Document Intelligence, validate, apply rules, and return results.
+    All invoices are processed concurrently to minimise latency.
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
 
     reset_duplicate_tracker()
+
+    # ── Step 1: Read and validate all file bytes up-front (fast, sequential) ──
+    pending: List[dict] = []   # files that pass basic checks, ready to process
     results: List[InvoiceProcessingResult] = []
 
     for upload in files:
         filename = upload.filename or "unknown"
         ext = Path(filename).suffix.lower()
 
-        # File type validation
         if ext not in ALLOWED_EXTENSIONS:
             results.append(InvoiceProcessingResult(
                 filename=filename,
@@ -46,10 +50,7 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
             ))
             continue
 
-        # Read file bytes
         file_bytes = await upload.read()
-
-        # File size validation
         size_mb = len(file_bytes) / (1024 * 1024)
         if size_mb > MAX_FILE_SIZE_MB:
             results.append(InvoiceProcessingResult(
@@ -64,36 +65,56 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
         with open(save_path, "wb") as f:
             f.write(file_bytes)
 
+        pending.append({"filename": filename, "file_bytes": file_bytes})
+
+    # ── Step 2: Process all valid files CONCURRENTLY ──────────────────────────
+    # Azure DI SDK and Groq are synchronous/blocking → run in thread pool so
+    # they execute in parallel without blocking the event loop.
+    async def process_one(filename: str, file_bytes: bytes) -> InvoiceProcessingResult:
         try:
-            # Step 1: Extract via Azure DI
-            extracted = extract_invoice_from_bytes(file_bytes, filename)
-
-            # Step 2: Validate
-            validation_errors = validate_invoice(extracted)
-
-            # Step 3: Apply rules engine
+            extracted = await asyncio.to_thread(extract_invoice_from_bytes, file_bytes, filename)
+            # Validation (pure CPU, fast) and rules engine run in the same thread
+            validation_errors = validate_invoice(extracted, skip_duplicate_check=True)
             accounting_row = apply_rules(extracted)
-
-            # Determine status
             has_errors = any(e.severity == "error" for e in validation_errors)
             has_warnings = any(e.severity == "warning" for e in validation_errors)
             status = "error" if has_errors else ("warning" if has_warnings else "success")
-
-            results.append(InvoiceProcessingResult(
+            return InvoiceProcessingResult(
                 filename=filename,
                 status=status,
                 extracted=extracted,
                 accounting_row=accounting_row,
                 validation_errors=validation_errors,
-            ))
-
+            )
         except Exception as exc:
             logger.exception(f"Failed to process {filename}: {exc}")
-            results.append(InvoiceProcessingResult(
+            return InvoiceProcessingResult(
                 filename=filename,
                 status="error",
                 error_message=str(exc),
-            ))
+            )
+
+    if pending:
+        parallel_results = await asyncio.gather(
+            *[process_one(p["filename"], p["file_bytes"]) for p in pending]
+        )
+        results.extend(parallel_results)
+
+    # ── Step 3: Duplicate detection (serial, after all results are in) ────────
+    seen: set = set()
+    for result in results:
+        if result.extracted and result.extracted.invoice_number:
+            inv_no = result.extracted.invoice_number
+            if inv_no in seen:
+                dup_error = ValidationError(
+                    field="invoice_number",
+                    message=f"Duplicate invoice number detected: {inv_no}",
+                    severity="error",
+                )
+                result.validation_errors = (result.validation_errors or []) + [dup_error]
+                result.status = "error"
+            else:
+                seen.add(inv_no)
 
     success_count = sum(1 for r in results if r.status == "success")
     warning_count = sum(1 for r in results if r.status == "warning")

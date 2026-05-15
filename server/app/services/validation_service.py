@@ -17,7 +17,7 @@ PAN_PATTERN = re.compile(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
 _seen_invoice_numbers: set = set()
 
 
-def validate_invoice(extracted: ExtractedInvoice, confidence_threshold: float = 0.6) -> List[ValidationError]:
+def validate_invoice(extracted: ExtractedInvoice, confidence_threshold: float = 0.6, skip_duplicate_check: bool = False) -> List[ValidationError]:
     errors: List[ValidationError] = []
 
     # --- Mandatory field checks ---
@@ -100,7 +100,8 @@ def validate_invoice(extracted: ExtractedInvoice, confidence_threshold: float = 
             ))
 
     # --- Duplicate invoice detection ---
-    if extracted.invoice_number:
+    # (Skipped when called from parallel workers; the route handler does this itself)
+    if not skip_duplicate_check and extracted.invoice_number:
         if extracted.invoice_number in _seen_invoice_numbers:
             errors.append(ValidationError(
                 field="invoice_number",
