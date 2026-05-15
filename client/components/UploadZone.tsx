@@ -50,49 +50,56 @@ export default function UploadZone({ onFilesSelected, isProcessing }: UploadZone
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 p-6 md:p-8">
       {/* Drop Zone */}
       <div
         {...getRootProps()}
         className={`
-          relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
-          transition-all duration-300 ease-in-out
+          relative border-2 border-dashed rounded-3xl p-12 text-center cursor-pointer
+          transition-all duration-500 ease-out overflow-hidden
           ${isDragActive
-            ? "border-blue-400 bg-blue-500/10 scale-[1.01]"
-            : "border-slate-600 bg-slate-800/40 hover:border-blue-500 hover:bg-slate-800/60"
+            ? "border-indigo-500/50 bg-indigo-500/10 scale-[1.02] shadow-[0_0_30px_rgba(99,102,241,0.2)]"
+            : "border-white/10 bg-white/[0.02] hover:border-indigo-500/30 hover:bg-white/[0.04]"
           }
           ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}
         `}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-5 relative z-10">
           <div
             className={`
-              w-16 h-16 rounded-2xl flex items-center justify-center
-              transition-all duration-300
-              ${isDragActive ? "bg-blue-500/30 scale-110" : "bg-slate-700/60"}
+              w-20 h-20 rounded-2xl flex items-center justify-center
+              transition-all duration-500 shadow-xl
+              ${isDragActive 
+                ? "bg-indigo-500/20 scale-110 shadow-indigo-500/20" 
+                : "bg-white/5 border border-white/10 group-hover:scale-105"
+              }
             `}
           >
             <Upload
-              className={`w-8 h-8 transition-colors duration-300 ${isDragActive ? "text-blue-400" : "text-slate-400"}`}
+              className={`w-10 h-10 transition-colors duration-500 ${isDragActive ? "text-indigo-400 animate-pulse" : "text-slate-400"}`}
             />
           </div>
           {isDragActive ? (
-            <div>
-              <p className="text-lg font-semibold text-blue-400">Drop your invoices here</p>
-              <p className="text-sm text-blue-300/70">Release to add files</p>
+            <div className="space-y-1">
+              <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
+                Release to Ignite Pipeline
+              </p>
+              <p className="text-sm text-indigo-300/70">Analyzing file formats...</p>
             </div>
           ) : (
-            <div>
-              <p className="text-lg font-semibold text-slate-200">
-                Drag & drop invoice files here
+            <div className="space-y-2">
+              <p className="text-xl font-bold text-slate-200">
+                Drag & Drop Invoice Data
               </p>
-              <p className="text-sm text-slate-400 mt-1">
-                or <span className="text-blue-400 underline underline-offset-2">click to browse</span>
+              <p className="text-sm text-slate-400">
+                or <span className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer border-b border-indigo-400/30 hover:border-indigo-300 pb-0.5">browse your secure storage</span>
               </p>
-              <p className="text-xs text-slate-500 mt-3">
-                Supports PDF, PNG, JPG, JPEG, TIFF · Max 20MB per file
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                {["PDF", "PNG", "JPG", "TIFF"].map(ext => (
+                  <span key={ext} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-slate-500 tracking-widest">{ext}</span>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -100,22 +107,25 @@ export default function UploadZone({ onFilesSelected, isProcessing }: UploadZone
 
       {/* File List */}
       {pendingFiles.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-            {pendingFiles.length} file{pendingFiles.length > 1 ? "s" : ""} selected
-          </p>
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-            {pendingFiles.map((file) => (
+        <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center justify-between px-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              {pendingFiles.length} Document{pendingFiles.length > 1 ? "s" : ""} Queued
+            </p>
+          </div>
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            {pendingFiles.map((file, idx) => (
               <div
                 key={file.name}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 group"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05] transition-all group animate-in fade-in slide-in-from-right-4"
+                style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-4 h-4 text-blue-400" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{file.name}</p>
-                  <p className="text-xs text-slate-500">{formatBytes(file.size)}</p>
+                  <p className="text-sm font-semibold text-slate-200 truncate">{file.name}</p>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">{formatBytes(file.size)}</p>
                 </div>
                 {!isProcessing && (
                   <button
@@ -123,9 +133,9 @@ export default function UploadZone({ onFilesSelected, isProcessing }: UploadZone
                       e.stopPropagation();
                       removeFile(file.name);
                     }}
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -135,34 +145,41 @@ export default function UploadZone({ onFilesSelected, isProcessing }: UploadZone
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-4 pt-2">
         <button
           onClick={handleProcess}
           disabled={pendingFiles.length === 0 || isProcessing}
           className={`
-            flex-1 py-3 px-6 rounded-xl font-semibold text-sm
-            transition-all duration-200
+            flex-1 py-4 px-6 rounded-2xl font-bold text-sm tracking-wide uppercase
+            transition-all duration-300 relative overflow-hidden group
             ${pendingFiles.length === 0 || isProcessing
-              ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0"
+              ? "bg-white/5 text-slate-500 cursor-not-allowed border border-white/5"
+              : "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:-translate-y-1"
             }
           `}
         >
           {isProcessing ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" />
-              Processing...
+            <span className="flex items-center justify-center gap-3">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Processing Pipeline...
             </span>
           ) : (
-            `Process ${pendingFiles.length > 0 ? `${pendingFiles.length} ` : ""}Invoice${pendingFiles.length !== 1 ? "s" : ""}`
+            <>
+              {pendingFiles.length > 0 && (
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:animate-[shimmer_1.5s_infinite]" />
+              )}
+              <span className="relative z-10">
+                Extract Data ({pendingFiles.length})
+              </span>
+            </>
           )}
         </button>
         {pendingFiles.length > 0 && !isProcessing && (
           <button
             onClick={() => setPendingFiles([])}
-            className="px-4 py-3 rounded-xl text-sm text-slate-400 hover:text-red-400 hover:bg-red-400/10 border border-slate-700 hover:border-red-400/30 transition-all duration-200"
+            className="px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-all duration-300"
           >
-            Clear all
+            Clear
           </button>
         )}
       </div>
