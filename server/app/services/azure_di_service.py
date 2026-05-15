@@ -55,13 +55,20 @@ def extract_invoice_from_bytes(file_bytes: bytes, filename: str) -> ExtractedInv
     
     groq_client = Groq(api_key=LLM_API_KEY)
     
-    system_prompt = '''You are an expert Indian accounting AI. You will be provided with the Markdown text of an invoice. 
+    system_prompt = '''You are an expert Indian accounting AI. You will be provided with the Markdown text of an invoice.
 Your job is to extract the data into the exact JSON schema provided below.
+
 Rules:
 1. Total Amount MUST equal Taxable Amount + GST Amount.
 2. GSTIN must be exactly 15 alphanumeric characters.
 3. If a value is not found, return null. Do not guess.
 4. Output MUST be ONLY raw JSON without any markdown formatting, backticks, or text before/after.
+5. CRITICAL - GST Rate: Indian invoices split GST into CGST and SGST (or IGST alone).
+   - If you see CGST % and SGST %, the total gst_rate = CGST % + SGST % (e.g. 9% CGST + 9% SGST = 18% total).
+   - If you see only IGST %, use that directly as gst_rate.
+   - NEVER return just one component (e.g. 9) when both CGST and SGST are present.
+   - Valid combined GST rates are: 0, 5, 12, 18, 28.
+6. gst_amount is the TOTAL tax paid (CGST amount + SGST amount, or IGST amount).
 
 JSON Schema to output:
 {
@@ -98,15 +105,43 @@ JSON Schema to output:
         response_content = response_content.strip()
 
         extracted_data = json.loads(response_content)
-        
+
+        # --- Post-processing: detect and fix CGST+SGST split rate ---
+        # If the LLM returned a rate that is exactly half of what the
+        # math implies (taxable_amount / gst_amount ≈ rate*2), correct it.
+        gst_rate = extracted_data.get("gst_rate")
+        taxable_amount = extracted_data.get("taxable_amount")
+        gst_amount = extracted_data.get("gst_amount")
+        STANDARD_RATES = {0.0, 5.0, 12.0, 18.0, 28.0}
+
+        if gst_rate is not None and taxable_amount and gst_amount and taxable_amount > 0:
+            # Calculate effective GST rate from actual amounts
+            effective_rate = round((gst_amount / taxable_amount) * 100, 2)
+            doubled_rate = round(gst_rate * 2, 2)
+
+            # If the extracted rate is NOT a standard rate, but doubling it IS standard,
+            # and that doubled value matches the effective rate within 1%,
+            # the LLM picked just one split component — correct it.
+            if (
+                gst_rate not in STANDARD_RATES
+                and doubled_rate in STANDARD_RATES
+                and abs(effective_rate - doubled_rate) <= 1.0
+            ):
+                logger.warning(
+                    f"GST rate correction: LLM returned {gst_rate}% (single CGST/SGST component). "
+                    f"Correcting to combined rate {doubled_rate}% based on amounts "
+                    f"(taxable={taxable_amount}, gst={gst_amount})."
+                )
+                gst_rate = doubled_rate
+
         return ExtractedInvoice(
             vendor_name=extracted_data.get("vendor_name"),
             vendor_gstin=extracted_data.get("vendor_gstin"),
             invoice_number=extracted_data.get("invoice_number"),
             invoice_date=extracted_data.get("invoice_date"),
-            taxable_amount=extracted_data.get("taxable_amount"),
-            gst_amount=extracted_data.get("gst_amount"),
-            gst_rate=extracted_data.get("gst_rate"),
+            taxable_amount=taxable_amount,
+            gst_amount=gst_amount,
+            gst_rate=gst_rate,
             hsn_sac=extracted_data.get("hsn_sac"),
             total_amount=extracted_data.get("total_amount"),
             raw_fields={"markdown_content": document_markdown, "raw_llm_response": response_content}
