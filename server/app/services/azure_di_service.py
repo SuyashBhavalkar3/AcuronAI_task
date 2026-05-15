@@ -94,17 +94,41 @@ JSON Schema to output:
         )
         
         response_content = completion.choices[0].message.content.strip()
-        
-        # Clean up markdown code blocks if the model ignored the instruction
-        if response_content.startswith("```json"):
-            response_content = response_content[7:]
-        if response_content.startswith("```"):
-            response_content = response_content[3:]
-        if response_content.endswith("```"):
-            response_content = response_content[:-3]
-        response_content = response_content.strip()
 
-        extracted_data = json.loads(response_content)
+        # --- Robust JSON extraction (3 layers) ---
+        # Layer 1: Strip fenced code blocks (```json ... ``` or ``` ... ```)
+        cleaned = response_content
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+
+        # Layer 2: Try direct parse
+        extracted_data = None
+        try:
+            extracted_data = json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Layer 3: Regex — find the first {...} JSON object even if prose surrounds it
+        if extracted_data is None:
+            json_match = re.search(r'\{[\s\S]*\}', cleaned)
+            if json_match:
+                try:
+                    extracted_data = json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
+
+        if extracted_data is None:
+            logger.error(f"All JSON parse attempts failed for {filename}. Raw LLM output: {response_content[:500]}")
+            raise ValueError(
+                f"LLM returned unparseable output for '{filename}'. "
+                "The document may be a scan, image-only PDF, or in an unsupported format. "
+                f"Raw response preview: {response_content[:200]}"
+            )
 
         # --- Post-processing: detect and fix CGST+SGST split rate ---
         # If the LLM returned a rate that is exactly half of what the
@@ -147,11 +171,8 @@ JSON Schema to output:
             raw_fields={"markdown_content": document_markdown, "raw_llm_response": response_content}
         )
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse LLM JSON: {e}")
-        logger.error(f"Raw LLM output: {response_content}")
-        return ExtractedInvoice(raw_fields={"error": "LLM returned invalid JSON", "markdown_content": document_markdown})
     except Exception as e:
-        logger.error(f"Groq API error: {e}")
-        return ExtractedInvoice(raw_fields={"error": str(e), "markdown_content": document_markdown})
+        logger.error(f"Extraction failed for '{filename}': {e}")
+        raise
+
 
