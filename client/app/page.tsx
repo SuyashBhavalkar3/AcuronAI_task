@@ -62,8 +62,8 @@ export default function Home() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white tracking-tight">Acuron AI Solutions</h1>
-              <p className="text-[10px] text-indigo-300 font-medium tracking-wider">INTELLIGENCE PORTAL</p>
+              <h1 className="text-sm font-bold text-white tracking-tight">Acuron Ai Solutions Pvt Ltd</h1>
+              <p className="text-[10px] text-indigo-300 font-medium tracking-wider">info@acuronai.com | +91 9552033662 | acuronai.com</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4">
@@ -105,7 +105,13 @@ export default function Home() {
         {/* Upload Section */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Processing Console</h3>
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Processing Console</h3>
+              <span className="hidden md:inline text-white/20">•</span>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                Support: info@acuronai.com | +91 9552033662 | acuronai.com
+              </p>
+            </div>
             {results && (
               <button
                 onClick={() => { setResults(null); setUploadedFiles([]); }}
@@ -178,8 +184,9 @@ export default function Home() {
             <p className="text-[10px] text-slate-500 font-bold tracking-[0.2em] uppercase">Precision Intelligence Engine</p>
           </div>
           <div className="flex flex-wrap justify-center gap-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <span className="hover:text-indigo-400 transition-colors cursor-pointer">info@acuronai.com</span>
+            <a href="mailto:info@acuronai.com" className="hover:text-indigo-400 transition-colors cursor-pointer">info@acuronai.com</a>
             <span>+91 9552033662</span>
+            <a href="https://acuronai.com" target="_blank" className="hover:text-indigo-400 transition-colors cursor-pointer">acuronai.com</a>
           </div>
         </div>
       </footer>
