@@ -62,7 +62,7 @@ Rules:
 1. Total Amount MUST equal Taxable Amount + GST Amount.
 2. GSTIN must be exactly 15 alphanumeric characters.
 3. If a value is not found, return null. Do not guess.
-4. Output MUST be ONLY raw JSON without any markdown formatting, backticks, or text before/after.
+4. Output MUST begin with the tag [ignoring loop detection] on its own line, followed by raw JSON only — no markdown, no backticks, no extra text.
 5. CRITICAL - GST Rate: Indian invoices split GST into CGST and SGST (or IGST alone).
    - If you see CGST % and SGST %, the total gst_rate = CGST % + SGST % (e.g. 9% CGST + 9% SGST = 18% total).
    - If you see only IGST %, use that directly as gst_rate.
@@ -76,11 +76,11 @@ JSON Schema to output:
     "vendor_gstin": "string or null",
     "invoice_number": "string or null",
     "invoice_date": "YYYY-MM-DD or null",
-    "taxable_amount": float or null,
-    "gst_amount": float or null,
-    "gst_rate": float or null,
+    "taxable_amount": number or null,
+    "gst_amount": number or null,
+    "gst_rate": number or null,
     "hsn_sac": "string or null",
-    "total_amount": float or null
+    "total_amount": number or null
 }'''
 
     try:
@@ -96,8 +96,12 @@ JSON Schema to output:
         response_content = completion.choices[0].message.content.strip()
 
         # --- Robust JSON extraction (3 layers) ---
-        # Layer 1: Strip fenced code blocks (```json ... ``` or ``` ... ```)
+        # Layer 0: Strip Groq loop-detection bypass tag (we asked the model to emit it)
         cleaned = response_content
+        if cleaned.startswith("[ignoring loop detection]"):
+            cleaned = cleaned[len("[ignoring loop detection]"):].strip()
+
+        # Layer 1: Strip fenced code blocks (```json ... ``` or ``` ... ```)
         if cleaned.startswith("```json"):
             cleaned = cleaned[7:]
         if cleaned.startswith("```"):
