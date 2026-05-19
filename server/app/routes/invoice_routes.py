@@ -7,7 +7,7 @@ from typing import List
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import Response
 
-from app.config.settings import UPLOAD_DIR, OUTPUT_DIR, ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB
+from app.config.settings import ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB
 from app.schemas.invoice import InvoiceProcessingResult, ProcessInvoicesResponse
 from app.services.azure_di_service import extract_invoice_from_bytes
 from app.services.validation_service import validate_invoice, reset_duplicate_tracker

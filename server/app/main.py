@@ -1,11 +1,9 @@
 import logging
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.invoice_routes import router as invoice_router
-from app.config.settings import UPLOAD_DIR, OUTPUT_DIR
 
 # Configure logging
 logging.basicConfig(
