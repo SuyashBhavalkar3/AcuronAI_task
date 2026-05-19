@@ -18,11 +18,6 @@ from app.services.excel_service import generate_excel
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
-# Ensure directories exist
-Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-
-
 # Cooldown between invoices (seconds). Keeps cumulative token usage spread
 # across Groq's 1-minute window and reduces 429 frequency in batches.
 _INTER_INVOICE_COOLDOWN_S = 5
@@ -71,11 +66,6 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
                 error_message=f"File size {size_mb:.1f}MB exceeds limit of {MAX_FILE_SIZE_MB}MB.",
             ))
             continue
-
-        # Persist to uploads directory
-        save_path = Path(UPLOAD_DIR) / filename
-        with open(save_path, "wb") as f:
-            f.write(file_bytes)
 
         try:
             # Step 1: Extract via Azure DI + Groq LLM

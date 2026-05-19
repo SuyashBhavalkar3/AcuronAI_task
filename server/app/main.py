@@ -14,10 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Ensure required directories exist
-Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-
 app = FastAPI(
     title="Acuron Invoice Intelligence API",
     description=(
