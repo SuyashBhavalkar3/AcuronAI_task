@@ -115,23 +115,47 @@ def generate_excel(results: List[InvoiceProcessingResult]) -> bytes:
     ws.row_dimensions[1].height = 30
     ws.freeze_panes = "C2"
 
-    for row_idx, result in enumerate(results, start=2):
-        row_data = _row_to_dict(result)
+    row_idx = 2
+    for result in results:
+        e = result.extracted
         row_fill = success_fill
         if result.status == "error":
             row_fill = error_fill
         elif result.status == "warning":
             row_fill = warning_fill
 
-        # File name and status
-        ws.cell(row=row_idx, column=1, value=result.filename).fill = row_fill
-        ws.cell(row=row_idx, column=2, value=result.status.upper()).fill = row_fill
+        # Get tax breakdown or create a dummy one if none exists
+        breakdown = []
+        if e and e.tax_breakdown:
+            breakdown = e.tax_breakdown
+        else:
+            # Fallback: create a single entry from the top-level data
+            from app.schemas.invoice import TaxRateBreakdown
+            breakdown = [TaxRateBreakdown(
+                rate=float(str(e.gst_rate).replace("%", "").split(",")[0]) if e and e.gst_rate else 0,
+                taxable_amount=e.taxable_amount if e else 0,
+                gst_amount=e.gst_amount if e else 0
+            )]
 
-        for col_idx, header in enumerate(COLUMN_HEADERS, start=3):
-            cell = ws.cell(row=row_idx, column=col_idx, value=row_data.get(header))
-            cell.fill = row_fill
-            cell.border = thin_border
-            cell.alignment = Alignment(vertical="center")
+        for entry in breakdown:
+            row_data = _row_to_dict(result)
+            # Update the split-specific fields
+            row_data["Taxable on Amount"] = entry.taxable_amount
+            row_data["GST Tax Rate"] = f"{entry.rate}%"
+            # If trans_amount should be the line total (taxable + gst for that rate)
+            row_data["Trans Amount"] = round(entry.taxable_amount + entry.gst_amount, 2)
+
+            # File name and status
+            ws.cell(row=row_idx, column=1, value=result.filename).fill = row_fill
+            ws.cell(row=row_idx, column=2, value=result.status.upper()).fill = row_fill
+
+            for col_idx, header in enumerate(COLUMN_HEADERS, start=3):
+                cell = ws.cell(row=row_idx, column=col_idx, value=row_data.get(header))
+                cell.fill = row_fill
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center")
+            
+            row_idx += 1
 
     # Auto-size columns (cap at 40)
     for col_idx in range(1, len(all_headers) + 1):

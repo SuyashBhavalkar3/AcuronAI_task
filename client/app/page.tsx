@@ -33,10 +33,10 @@ export default function Home() {
   };
 
   const handleExportPdf = async () => {
-    if (uploadedFiles.length === 0) return;
+    if (!results) return;
     setIsExportingPdf(true);
     try {
-      const blob = await exportToPdf(uploadedFiles);
+      const blob = await exportToPdf(results.results);
       downloadBlob(blob, `invoice_report_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("PDF file downloaded successfully.");
     } catch (err: unknown) {
@@ -151,22 +151,24 @@ export default function Home() {
           <section ref={resultsRef} className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Extracted Results</h3>
-              <button
-                onClick={handleExportPdf}
-                disabled={isExportingPdf || uploadedFiles.length === 0}
-                className={`
-                  px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300 relative overflow-hidden group
-                  ${isExportingPdf
-                    ? "bg-white/5 text-slate-500 cursor-not-allowed border border-white/10"
-                    : "bg-indigo-600/20 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-600/40 hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] active:scale-95"
-                  }
-                `}
-              >
-                {!isExportingPdf && (
-                   <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[100%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                )}
-                <span className="relative z-10">{isExportingPdf ? "Exporting..." : "Download Report"}</span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleExportPdf}
+                  disabled={isExportingPdf || uploadedFiles.length === 0}
+                  className={`
+                    px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300 relative overflow-hidden group
+                    ${isExportingPdf
+                      ? "bg-white/5 text-slate-500 cursor-not-allowed border border-white/10"
+                      : "bg-indigo-600/20 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-600/40 hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] active:scale-95"
+                    }
+                  `}
+                >
+                  {!isExportingPdf && (
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[100%] group-hover:animate-[shimmer_1.5s_infinite]" />
+                  )}
+                  <span className="relative z-10">{isExportingPdf ? "Exporting..." : "Download Report"}</span>
+                </button>
+              </div>
             </div>
 
             <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">

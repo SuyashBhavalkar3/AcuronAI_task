@@ -14,6 +14,12 @@ class InvoiceField(BaseModel):
     confidence: Optional[float] = None
 
 
+class TaxRateBreakdown(BaseModel):
+    rate: float
+    taxable_amount: float
+    gst_amount: float
+
+
 class ExtractedInvoice(BaseModel):
     vendor_name: Optional[str] = None
     vendor_gstin: Optional[str] = None
@@ -21,9 +27,10 @@ class ExtractedInvoice(BaseModel):
     invoice_date: Optional[str] = None
     taxable_amount: Optional[float] = None
     gst_amount: Optional[float] = None
-    gst_rate: Optional[float] = None
+    gst_rate: Optional[str] = None    # e.g. "18" or "18, 5" for mixed-rate invoices
     hsn_sac: Optional[str] = None
     total_amount: Optional[float] = None
+    tax_breakdown: List[TaxRateBreakdown] = []
     raw_fields: Optional[dict] = None
 
 
@@ -68,7 +75,7 @@ class AccountingRow(BaseModel):
     reverse_charge_pct: float = 0.0
     item_details_sr_no: Optional[str] = None
     goods_service: Optional[str] = None
-    gst_tax_rate: Optional[float] = None
+    gst_tax_rate: Optional[str] = None   # e.g. "18" or "18, 5" for mixed-rate invoices
     original_invoice_no_dr_cr: Optional[str] = None
     advance_challan_no: Optional[str] = None
 

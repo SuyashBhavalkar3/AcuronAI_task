@@ -124,7 +124,7 @@ def apply_rules(extracted: ExtractedInvoice) -> AccountingRow:
         curr_code="INR",
         trans_amount=extracted.total_amount,
         dr_cr=dr_cr,
-        jrnal_type="SEXPS",
+        jrnal_type="Standard Expenses",
         jrnal_source="Not applicable",
         reference=reference,
         description=description,

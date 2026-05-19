@@ -90,12 +90,30 @@ def validate_invoice(extracted: ExtractedInvoice, confidence_threshold: float = 
             ))
 
     # --- GST rate sanity check ---
+    # gst_rate is now a string — could be "18" (single) or "18, 5" (mixed).
+    # Parse and validate each individual rate.
     VALID_GST_RATES = {0, 5, 12, 18, 28}
     if extracted.gst_rate is not None:
-        if extracted.gst_rate not in VALID_GST_RATES and extracted.gst_rate > 0:
+        invalid_rates = []
+        for part in extracted.gst_rate.split(","):
+            part = part.strip().replace("%", "")
+            if not part:
+                continue
+            try:
+                rate_val = float(part)
+                rate_int = int(rate_val) if rate_val.is_integer() else rate_val
+                if rate_int not in VALID_GST_RATES:
+                    invalid_rates.append(part)
+            except ValueError:
+                invalid_rates.append(part)  # couldn't parse — flag it
+
+        if invalid_rates:
             errors.append(ValidationError(
                 field="gst_rate",
-                message=f"Unusual GST rate detected: {extracted.gst_rate}%. Standard rates are {VALID_GST_RATES}.",
+                message=(
+                    f"Unusual GST rate(s) detected: {', '.join(invalid_rates)}%. "
+                    f"Standard rates are {VALID_GST_RATES}."
+                ),
                 severity="warning"
             ))
 

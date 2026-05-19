@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from pathlib import Path
 from typing import List
@@ -12,6 +13,7 @@ from app.services.azure_di_service import extract_invoice_from_bytes
 from app.services.validation_service import validate_invoice, reset_duplicate_tracker
 from app.services.rules_engine import apply_rules
 from app.services.pdf_service import generate_pdf
+from app.services.excel_service import generate_excel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
@@ -21,6 +23,11 @@ Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
 
+# Cooldown between invoices (seconds). Keeps cumulative token usage spread
+# across Groq's 1-minute window and reduces 429 frequency in batches.
+_INTER_INVOICE_COOLDOWN_S = 5
+
+
 @router.post("/upload", response_model=ProcessInvoicesResponse)
 async def upload_invoices(files: List[UploadFile] = File(...)):
     """
@@ -28,9 +35,12 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
     Azure Document Intelligence + Groq LLM sequentially, validate, apply
     rules, and return results.
 
-    NOTE: Sequential processing is intentional — Groq free tier enforces a
-    strict 8,000 tokens/min rate limit that causes 429 errors under parallel
-    load. Each invoice is processed one at a time to stay within limits.
+    Rate-limit strategy:
+      - Sequential processing: one Groq call at a time (no parallel load).
+      - Inter-invoice cooldown: _INTER_INVOICE_COOLDOWN_S seconds between
+        each successful extraction to spread token usage across the minute.
+      - Groq call itself retries on 429 with exponential backoff (see
+        azure_di_service._call_groq_with_retry).
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
@@ -89,6 +99,14 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
                 validation_errors=validation_errors,
             ))
 
+            # Cooldown: spread token usage across Groq's 1-min window
+            if len(files) > 1:
+                logger.info(
+                    f"Inter-invoice cooldown: sleeping {_INTER_INVOICE_COOLDOWN_S}s "
+                    "to stay within Groq rate limits..."
+                )
+                time.sleep(_INTER_INVOICE_COOLDOWN_S)
+
         except Exception as exc:
             logger.exception(f"Failed to process {filename}: {exc}")
             results.append(InvoiceProcessingResult(
@@ -111,17 +129,32 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
 
 
 @router.post("/export-pdf")
-async def export_pdf(files: List[UploadFile] = File(...)):
+async def export_pdf(results: List[InvoiceProcessingResult]):
     """
-    Process uploaded invoices and return a styled PDF file for download.
+    Generate a styled PDF from existing processing results.
+    Accepts JSON data, so no re-extraction is needed.
     """
-    upload_response = await upload_invoices(files)
-    pdf_bytes = generate_pdf(upload_response.results)
+    pdf_bytes = generate_pdf(results)
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=invoice_report.pdf"},
+    )
+
+
+@router.post("/export-excel")
+async def export_excel(results: List[InvoiceProcessingResult]):
+    """
+    Generate a styled Excel file from existing processing results.
+    Accepts JSON data, so no re-extraction is needed.
+    """
+    excel_bytes = generate_excel(results)
+
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=invoice_accounting.xlsx"},
     )
 
 

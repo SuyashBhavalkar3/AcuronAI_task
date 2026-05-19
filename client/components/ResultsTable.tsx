@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { ProcessInvoicesResponse } from "@/services/invoiceApi";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText, Download } from "lucide-react";
+import * as XLSX from "xlsx-js-style";
 
 interface ResultsTableProps {
   data: ProcessInvoicesResponse;
@@ -11,6 +12,89 @@ interface ResultsTableProps {
 
 export default function ResultsTable({ data }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const handleExportUI = () => {
+    const exportData: any[] = [];
+    const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+    let currentRow = 1; // Header is row 0
+
+    data.results.forEach((r) => {
+      const e = r.extracted;
+      const a = r.accounting_row;
+      const validationErrs = r.validation_errors.map((err) => `${err.field}: ${err.message}`).join(" | ");
+
+      const addRow = (rate: string | number | null, taxable: number | null, gst: number | null) => {
+        exportData.push({
+          "File Name": r.filename,
+          "Status": r.status,
+          "Vendor Name": e?.vendor_name || "",
+          "GSTIN": e?.vendor_gstin || "",
+          "Invoice Number": e?.invoice_number || "",
+          "Invoice Date": formatDate(e?.invoice_date || null),
+          "HSN/SAC": e?.hsn_sac || "",
+          "GST Rate": rate || "",
+          "Taxable Amount": taxable || 0,
+          "GST Amount": gst || 0,
+          "Total GST Amount": e?.gst_amount || 0,
+          "Total Amount": e?.total_amount || 0,
+          "GL Account": a?.account_code || "",
+          "Acc Period": a?.acc_period || "",
+          "Dr/Cr": a?.dr_cr || "",
+          "Journal Type": a?.jrnal_type || "",
+          "Vendor Code": a?.vendor_code_analysis_code || "",
+          "Branch Code": a?.branch_analysis_code || "",
+          "TDS Applicable": a?.tds_applicability_analysis_code || "",
+          "Curr Code": a?.curr_code || "",
+          "Reverse Charge": a?.reverse_charge || "",
+          "Goods/Service": a?.goods_service || "",
+          "Validation Errors": validationErrs,
+        });
+      };
+
+      const startRow = currentRow;
+      let rowCount = 0;
+
+      if (e?.tax_breakdown && e.tax_breakdown.length > 0) {
+        e.tax_breakdown.forEach((tax) => {
+          addRow(`${tax.rate}%`, tax.taxable_amount, tax.gst_amount);
+          rowCount++;
+        });
+      } else {
+        addRow(e?.gst_rate || null, e?.taxable_amount || null, e?.gst_amount || null);
+        rowCount++;
+      }
+
+      if (rowCount > 1) {
+        const endRow = startRow + rowCount - 1;
+        // Indices of common columns: 0 to 6, and 10 to 22
+        const columnsToMerge = [0, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+        
+        columnsToMerge.forEach((colIdx) => {
+          merges.push({
+            s: { r: startRow, c: colIdx },
+            e: { r: endRow, c: colIdx }
+          });
+        });
+      }
+      
+      currentRow += rowCount;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    for (const cell in worksheet) {
+      if (cell[0] === "!") continue;
+      if (!worksheet[cell].s) worksheet[cell].s = {};
+      worksheet[cell].s.alignment = { vertical: "top" };
+    }
+
+    if (merges.length > 0) {
+      worksheet["!merges"] = merges;
+    }
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Extraction_Data");
+    XLSX.writeFile(workbook, "extracted_table_view.xlsx");
+  };
 
   const statusIcon = (status: string) => {
     if (status === "success") return <CheckCircle className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />;
@@ -40,6 +124,18 @@ export default function ResultsTable({ data }: ResultsTableProps) {
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Export Header */}
+      <div className="flex justify-between items-end px-4 md:px-6 pt-2 pb-2">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Extracted Data</h3>
+        <button
+          onClick={handleExportUI}
+          className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 rounded-full hover:bg-cyan-500/20 hover:text-cyan-300 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Export Table to Excel
+        </button>
       </div>
 
       {/* Table */}
@@ -143,7 +239,7 @@ export default function ResultsTable({ data }: ResultsTableProps) {
                                 ["Invoice Number", e?.invoice_number],
                                 ["Invoice Date", formatDate(e?.invoice_date || null)],
                                 ["HSN/SAC", e?.hsn_sac],
-                                ["GST Rate", e?.gst_rate != null ? `${e.gst_rate}%` : null],
+                                ["GST Rate", e?.gst_rate],
                                 ["Taxable Amount", formatCurrency(e?.taxable_amount || null)],
                                 ["GST Amount", formatCurrency(e?.gst_amount || null)],
                                 ["Total Amount", formatCurrency(e?.total_amount || null)],

@@ -6,6 +6,12 @@ export interface ValidationError {
   severity: "error" | "warning";
 }
 
+export interface TaxRateBreakdown {
+  rate: number;
+  taxable_amount: number;
+  gst_amount: number;
+}
+
 export interface ExtractedInvoice {
   vendor_name: string | null;
   vendor_gstin: string | null;
@@ -13,9 +19,10 @@ export interface ExtractedInvoice {
   invoice_date: string | null;
   taxable_amount: number | null;
   gst_amount: number | null;
-  gst_rate: number | null;
+  gst_rate: string | null;
   hsn_sac: string | null;
   total_amount: number | null;
+  tax_breakdown?: TaxRateBreakdown[];
 }
 
 export interface AccountingRow {
@@ -40,7 +47,7 @@ export interface AccountingRow {
   reverse_charge: string;
   reverse_charge_pct: number;
   goods_service: string | null;
-  gst_tax_rate: number | null;
+  gst_tax_rate: string | null;
   [key: string]: unknown;
 }
 
@@ -80,15 +87,30 @@ export async function uploadInvoices(files: File[]): Promise<ProcessInvoicesResp
   return response.json();
 }
 
-export async function exportToPdf(files: File[]): Promise<Blob> {
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append("files", file);
-  }
-
+export async function exportToPdf(results: InvoiceProcessingResult[]): Promise<Blob> {
   const response = await fetch(`${API_BASE}/api/invoices/export-pdf`, {
     method: "POST",
-    body: formData,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(results),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Export failed: ${response.status} - ${error}`);
+  }
+
+  return response.blob();
+}
+
+export async function exportToExcel(results: InvoiceProcessingResult[]): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/api/invoices/export-excel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(results),
   });
 
   if (!response.ok) {
