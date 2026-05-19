@@ -35,6 +35,8 @@ export default function ResultsTable({ data }: ResultsTableProps) {
           "GST Rate": rate || "",
           "Taxable Amount": taxable || 0,
           "GST Amount": gst || 0,
+          "Total Amount (Particular GST)": (taxable || 0) + (gst || 0),
+          "Total Taxable Amount": e?.taxable_amount || 0,
           "Total GST Amount": e?.gst_amount || 0,
           "Total Amount": e?.total_amount || 0,
           "GL Account": a?.account_code || "",
@@ -66,8 +68,8 @@ export default function ResultsTable({ data }: ResultsTableProps) {
 
       if (rowCount > 1) {
         const endRow = startRow + rowCount - 1;
-        // Indices of common columns: 0 to 6, and 10 to 22
-        const columnsToMerge = [0, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+        // Indices of common columns: 0 to 6, and 11 to 24
+        const columnsToMerge = [0, 1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
         
         columnsToMerge.forEach((colIdx) => {
           merges.push({
