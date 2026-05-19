@@ -1,6 +1,7 @@
 import re
 import json
 import time
+import io
 import random
 import logging
 from typing import Optional
@@ -10,6 +11,7 @@ from azure.core.credentials import AzureKeyCredential
 from groq import Groq
 from groq import RateLimitError as GroqRateLimitError
 from groq import APIStatusError as GroqAPIStatusError
+from pypdf import PdfReader, PdfWriter
 
 from app.config.settings import (
     AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
@@ -17,6 +19,40 @@ from app.config.settings import (
     LLM_API_KEY,
 )
 from app.schemas.invoice import ExtractedInvoice
+
+def _split_pdf_if_needed(file_bytes: bytes, filename: str, max_pages: int = 2) -> list[bytes]:
+    """
+    If the file is a PDF and has more than max_pages, split it into chunks
+    to bypass the Azure Document Intelligence Free Tier (F0) page limit.
+    """
+    if not file_bytes.startswith(b"%PDF-"):
+        return [file_bytes]
+
+    try:
+        reader = PdfReader(io.BytesIO(file_bytes))
+        total_pages = len(reader.pages)
+        if total_pages <= max_pages:
+            return [file_bytes]
+
+        logger.info(
+            f"[{filename}] PDF has {total_pages} pages, which exceeds Azure DI F0 Free tier limit of {max_pages} pages. "
+            f"Splitting into {((total_pages - 1) // max_pages) + 1} chunks..."
+        )
+
+        chunks = []
+        for i in range(0, total_pages, max_pages):
+            writer = PdfWriter()
+            for j in range(i, min(i + max_pages, total_pages)):
+                writer.add_page(reader.pages[j])
+            
+            chunk_io = io.BytesIO()
+            writer.write(chunk_io)
+            chunks.append(chunk_io.getvalue())
+            
+        return chunks
+    except Exception as e:
+        logger.warning(f"[{filename}] Failed to parse/split PDF (maybe encrypted or corrupted): {e}. Sending raw file instead.")
+        return [file_bytes]
 
 logger = logging.getLogger(__name__)
 
@@ -190,14 +226,24 @@ def extract_invoice_from_bytes(file_bytes: bytes, filename: str) -> ExtractedInv
     logger.info(f"Sending {filename} to Azure Document Intelligence (prebuilt-layout)...")
 
     # --- Step 1: Get Markdown from Azure DI ---
-    poller = client.begin_analyze_document(
-        "prebuilt-layout",
-        body=file_bytes,
-        content_type="application/octet-stream",
-        output_content_format="markdown",
-    )
-    result = poller.result()
-    document_markdown = result.content or ""
+    # Split the document into 2-page chunks to bypass the Azure F0 Free Tier limit
+    chunks = _split_pdf_if_needed(file_bytes, filename, max_pages=2)
+    markdown_chunks = []
+
+    for idx, chunk_bytes in enumerate(chunks):
+        if len(chunks) > 1:
+            logger.info(f"[{filename}] Processing PDF page chunk {idx + 1}/{len(chunks)}...")
+        
+        poller = client.begin_analyze_document(
+            "prebuilt-layout",
+            body=chunk_bytes,
+            content_type="application/octet-stream",
+            output_content_format="markdown",
+        )
+        result = poller.result()
+        markdown_chunks.append(result.content or "")
+
+    document_markdown = "\n\n".join(markdown_chunks).strip()
 
     if not document_markdown:
         logger.warning(f"No content detected in {filename}")
